@@ -29,7 +29,18 @@ jobs:
           ssh-key: ${{ secrets.TOOL_EDIT_SOURCE_SSH_KEY }}
           path: private-source
           sparse-checkout: commercial-editor
-          persist-credentials: false
+          persist-credentials: true
+      - name: Exclude unrelated legacy submodules from temporary build index
+        run: |
+          git -C .. ls-files --stage | ForEach-Object {
+            if ($_ -match '^160000 .*\t(.+)$') {
+              git -C .. update-index --force-remove -- $Matches[1]
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          }
+          git -C .. config --local --unset-all core.sshCommand
+          git -C .. config --local --unset-all http.https://github.com/.extraheader
+          exit 0
       - name: Check whether source changed
         id: changed
         env:
